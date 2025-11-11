@@ -63,11 +63,18 @@ const Diary = () => {
       const url = date 
         ? `${API_BASE_URL}/entries/by-date/?date=${date}`
         : `${API_BASE_URL}/entries/`;
+      
+      console.log('Fetching entries from:', url);
+      console.log('Access token present:', !!accessToken);
+      
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
         }
       });
+      
+      console.log('Response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
@@ -77,6 +84,9 @@ const Diary = () => {
       } else if (response.status === 401) {
         console.error('Unauthorized - redirecting to login');
         logout();
+      } else {
+        const errorText = await response.text();
+        console.error('Error fetching entries. Status:', response.status, 'Response:', errorText);
       }
     } catch (error) {
       console.error('Error fetching entries:', error);
@@ -158,6 +168,9 @@ const Diary = () => {
       return;
     }
     
+    // ✅ LOG THE DATA BEING SENT
+    console.log('Sending formData:', JSON.stringify(formData, null, 2));
+    
     try {
       const response = await fetch(`${API_BASE_URL}/entries/`, {
         method: 'POST',
@@ -180,7 +193,10 @@ const Diary = () => {
         logout();
       } else {
         const errorData = await response.json();
-        console.error('Error creating entry:', errorData);
+        // ✅ NOW YOU'LL SEE DETAILED ERRORS
+        console.error('Error creating entry. Status:', response.status);
+        console.error('Error details:', errorData);
+        alert(`Error creating entry: ${JSON.stringify(errorData.details || errorData, null, 2)}`);
       }
     } catch (error) {
       console.error('Error creating entry:', error);
@@ -196,6 +212,9 @@ const Diary = () => {
       logout();
       return;
     }
+    
+    // ✅ LOG THE DATA BEING SENT
+    console.log('Updating entry with formData:', JSON.stringify(formData, null, 2));
     
     try {
       const response = await fetch(`${API_BASE_URL}/entries/${selectedEntry.id}/`, {
@@ -219,7 +238,9 @@ const Diary = () => {
         logout();
       } else {
         const errorData = await response.json();
-        console.error('Error updating entry:', errorData);
+        console.error('Error updating entry. Status:', response.status);
+        console.error('Error details:', errorData);
+        alert(`Error updating entry: ${JSON.stringify(errorData.details || errorData, null, 2)}`);
       }
     } catch (error) {
       console.error('Error updating entry:', error);
