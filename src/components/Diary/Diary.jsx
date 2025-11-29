@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -50,6 +50,9 @@ const Diary = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerMonth, setPickerMonth] = useState(new Date());
   
+  const imageInputRef = useRef(null);
+  const videoInputRef = useRef(null);
+  
   // Form state
   const [formData, setFormData] = useState({
     title: '',
@@ -79,7 +82,7 @@ const Diary = () => {
       if (response.ok) {
         const data = await response.json();
         const entriesData = data.results || data;
-        console.log('Fetched entries:', entriesData);
+        // console.log('Fetched entries:', entriesData);
         setEntries(entriesData);
       } else if (response.status === 401) {
         console.error('Unauthorized - redirecting to login');
@@ -169,7 +172,7 @@ const Diary = () => {
     }
     
     // ✅ LOG THE DATA BEING SENT
-    console.log('Sending formData:', JSON.stringify(formData, null, 2));
+    // console.log('Sending formData:', JSON.stringify(formData, null, 2));
     
     try {
       const response = await fetch(`${API_BASE_URL}/entries/`, {
@@ -214,7 +217,7 @@ const Diary = () => {
     }
     
     // ✅ LOG THE DATA BEING SENT
-    console.log('Updating entry with formData:', JSON.stringify(formData, null, 2));
+    // console.log('Updating entry with formData:', JSON.stringify(formData, null, 2));
     
     try {
       const response = await fetch(`${API_BASE_URL}/entries/${selectedEntry.id}/`, {
@@ -357,6 +360,15 @@ const Diary = () => {
 
   // Add content block
   const addContentBlock = (type) => {
+    if (type === 'image') {
+      imageInputRef.current?.click();
+      return;
+    }
+    if (type === 'video') {
+      videoInputRef.current?.click();
+      return;
+    }
+
     const newBlock = {
       block_type: type,
       order: formData.content_blocks.length,
@@ -369,6 +381,33 @@ const Diary = () => {
       ...formData,
       content_blocks: [...formData.content_blocks, newBlock]
     });
+  };
+
+  // Handle file upload directly from toolbar
+  const handleToolbarFileUpload = (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const newBlock = {
+        block_type: type,
+        order: formData.content_blocks.length,
+        text_content: null,
+        media_url: reader.result,
+        file_data: reader.result,
+        caption: ''
+      };
+      
+      setFormData(prev => ({
+        ...prev,
+        content_blocks: [...prev.content_blocks, newBlock]
+      }));
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    e.target.value = '';
   };
 
   // Update content block
@@ -605,7 +644,7 @@ const Diary = () => {
                 <PenLine size={18} style={{ marginRight: '8px' }} />
                 New Memory
               </button>
-            </div>
+            </div>  
 
             <div className="entries-list">
               {entries.length === 0 ? (
@@ -778,186 +817,211 @@ const Diary = () => {
 
         {/* Create/Edit Form */}
         {(view === 'create' || view === 'edit') && (
-          <div className="entry-form">
-            <button 
-              onClick={() => {
-                resetForm();
-                setView('list');
-              }} 
-              className="btn btn-secondary btn-back"
-            >
-              <ArrowLeft size={18} style={{ marginRight: '6px' }} />
-              Cancel
-            </button>
+          <div className="create-post-wrapper">
+            <div className="create-post-header">
+              <h2>{view === 'create' ? 'Create a memory' : 'Edit memory'}</h2>
+              <button 
+                onClick={() => {
+                  resetForm();
+                  setView('list');
+                }} 
+                className="btn-close-form"
+              >
+                <X size={24} />
+              </button>
+            </div>
 
-            <h2>{view === 'create' ? 'Create New Memory' : 'Edit Memory'}</h2>
+            <div className="create-post-container">
+              {/* Hidden File Inputs for Toolbar */}
+              <input
+                type="file"
+                ref={imageInputRef}
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => handleToolbarFileUpload(e, 'image')}
+              />
+              <input
+                type="file"
+                ref={videoInputRef}
+                accept="video/*"
+                style={{ display: 'none' }}
+                onChange={(e) => handleToolbarFileUpload(e, 'video')}
+              />
 
-            <form onSubmit={view === 'create' ? createEntry : updateEntry}>
-              <div className="form-group">
-                <label htmlFor="title">Memory Title</label>
-                <input
-                  id="title"
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Give your entry a title..."
-                  required
-                  className="form-control"
-                />
-              </div>
+              <form onSubmit={view === 'create' ? createEntry : updateEntry} className="post-form">
+                {/* Title Input */}
+                <div className="title-input-container">
+                  <input
+                    id="title"
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Title"
+                    required
+                    className="post-title-input"
+                    maxLength={300}
+                  />
+                </div>
 
-              <div className="content-blocks-section">
-                <div className="section-header">
-                  <h3>Content Blocks</h3>
-                  <div className="block-buttons">
-                    <button 
-                      type="button" 
-                      onClick={() => addContentBlock('text')}
-                      className="btn btn-sm btn-outline"
-                    >
-                      <FileText size={16} style={{ marginRight: '6px' }} />
-                      Text
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => addContentBlock('image')}
-                      className="btn btn-sm btn-outline"
-                    >
-                      <Image size={16} style={{ marginRight: '6px' }} />
-                      Image
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => addContentBlock('video')}
-                      className="btn btn-sm btn-outline"
-                    >
-                      <Video size={16} style={{ marginRight: '6px' }} />
-                      Video
-                    </button>
+                {/* Editor Container */}
+                <div className="post-editor-container">
+                  {/* Canvas */}
+                  <div className="editor-canvas">
+                    {formData.content_blocks.length === 0 ? (
+                      <div className="empty-canvas-placeholder" onClick={() => addContentBlock('text')}>
+                        <p>Text (optional)</p>
+                      </div>
+                    ) : (
+                      <div className="blocks-list">
+                        {formData.content_blocks.map((block, index) => (
+                          <div key={index} className={`editor-block block-type-${block.block_type}`}>
+                            
+                            {/* Block Controls (Hover only) */}
+                            <div className="block-side-controls">
+                              <div className="control-group">
+                                <button
+                                  type="button"
+                                  onClick={() => moveContentBlock(index, 'up')}
+                                  disabled={index === 0}
+                                  className="side-btn"
+                                >
+                                  <ChevronUp size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveContentBlock(index, 'down')}
+                                  disabled={index === formData.content_blocks.length - 1}
+                                  className="side-btn"
+                                >
+                                  <ChevronDown size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeContentBlock(index)}
+                                  className="side-btn btn-delete"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Text Block */}
+                            {block.block_type === 'text' && (
+                              <textarea
+                                value={block.text_content}
+                                onChange={(e) => updateContentBlock(index, 'text_content', e.target.value)}
+                                placeholder="Text (optional)"
+                                className="editor-textarea"
+                                autoFocus={index === formData.content_blocks.length - 1}
+                              />
+                            )}
+
+                            {/* Media Block */}
+                            {(block.block_type === 'image' || block.block_type === 'video') && (
+                              <div className="media-block-wrapper">
+                                {!block.media_url ? (
+                                  <div className="media-upload-placeholder">
+                                    <input
+                                      type="file"
+                                      accept={block.block_type === 'image' ? 'image/*' : 'video/*'}
+                                      onChange={(e) => handleFileUpload(index, e.target.files[0])}
+                                      id={`file-${index}`}
+                                      className="hidden-file-input"
+                                    />
+                                    <label htmlFor={`file-${index}`} className="upload-trigger">
+                                      <div className="upload-icon">
+                                        {block.block_type === 'image' ? <Image size={24} /> : <Video size={24} />}
+                                      </div>
+                                      <span>Upload {block.block_type}</span>
+                                    </label>
+                                  </div>
+                                ) : (
+                                  <div className="media-preview-container">
+                                    {block.block_type === 'image' ? (
+                                      <img src={block.media_url} alt="Preview" className="editor-media-preview" />
+                                    ) : (
+                                      <video src={block.media_url} controls className="editor-media-preview" />
+                                    )}
+                                    <button 
+                                      type="button" 
+                                      className="btn-remove-media"
+                                      onClick={() => updateContentBlock(index, 'media_url', null)}
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+                                )}
+                                <input
+                                  type="text"
+                                  value={block.caption}
+                                  onChange={(e) => updateContentBlock(index, 'caption', e.target.value)}
+                                  placeholder="Caption (optional)"
+                                  className="caption-input"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {formData.content_blocks.length === 0 ? (
-                  <p className="no-blocks-message">
-                    Add content blocks to your entry using the buttons above.
-                  </p>
-                ) : (
-                  <div className="blocks-editor">
-                    {formData.content_blocks.map((block, index) => (
-                      <div key={index} className="block-editor">
-                        <div className="block-editor-header">
-                          <span className="block-type-badge">{block.block_type}</span>
-                          <div className="block-controls">
-                            <button
-                              type="button"
-                              onClick={() => moveContentBlock(index, 'up')}
-                              disabled={index === 0}
-                              className="btn btn-icon"
-                              title="Move up"
-                            >
-                              <ChevronUp size={16} color="currentColor" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => moveContentBlock(index, 'down')}
-                              disabled={index === formData.content_blocks.length - 1}
-                              className="btn btn-icon"
-                              title="Move down"
-                            >
-                              <ChevronDown size={16} color="currentColor" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removeContentBlock(index)}
-                              className="btn btn-icon btn-remove"
-                              title="Remove block"
-                            >
-                              <X size={16} color="currentColor" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {block.block_type === 'text' && (
-                          <textarea
-                            value={block.text_content}
-                            onChange={(e) => updateContentBlock(index, 'text_content', e.target.value)}
-                            placeholder="Write your thoughts here..."
-                            rows="4"
-                            className="form-control"
-                            required
-                          />
-                        )}
-
-                        {(block.block_type === 'image' || block.block_type === 'video') && (
-                          <>
-                            <div className="file-upload-container">
-                              <input
-                                type="file"
-                                accept={block.block_type === 'image' ? 'image/*' : 'video/*'}
-                                onChange={(e) => handleFileUpload(index, e.target.files[0])}
-                                className="file-input"
-                                id={`file-${index}`}
-                              />
-                              <label htmlFor={`file-${index}`} className="file-label">
-                                {block.media_url ? 'Change File' : `Choose ${block.block_type}`}
-                              </label>
-                              {block.media_url && (
-                                <span className="file-name">File uploaded ✓</span>
-                              )}
-                            </div>
-                            
-                            {/* Preview */}
-                            {block.media_url && (
-                              <div className="media-preview">
-                                {block.block_type === 'image' ? (
-                                  <img src={block.media_url} alt="Preview" className="preview-image" />
-                                ) : (
-                                  <video src={block.media_url} controls className="preview-video" />
-                                )}
-                              </div>
-                            )}
-                            
-                            <input
-                              type="text"
-                              value={block.caption}
-                              onChange={(e) => updateContentBlock(index, 'caption', e.target.value)}
-                              placeholder="Add a caption (optional)..."
-                              className="form-control"
-                            />
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn btn-primary btn-lg">
-                  {view === 'create' ? (
-                    <>
-                      <PenLine size={18} style={{ marginRight: '8px' }} />
+                {/* Footer Actions */}
+                <div className="post-footer">
+                  <div className="footer-left">
+                    <button 
+                      type="submit" 
+                      className="btn-submit-post"
+                      disabled={!formData.title}
+                    >
+                      <PenLine size={16} style={{ marginRight: '8px' }} />
                       Save Memory
-                    </>
-                  ) : (
-                    <>
-                      <Save size={18} style={{ marginRight: '8px' }} />
-                      Update Memory
-                    </>
-                  )}
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    resetForm();
-                    setView('list');
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        resetForm();
+                        setView('list');
+                      }}
+                      className="btn-cancel-post"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <div className="footer-right">
+                    <div className="editor-toolbar">
+                      <div className="toolbar-group">
+                        <button 
+                          type="button" 
+                          onClick={() => addContentBlock('text')}
+                          className="toolbar-btn"
+                          title="Add Text Block"
+                        >
+                          <FileText size={20} />
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={() => imageInputRef.current?.click()}
+                          className="toolbar-btn"
+                          title="Add Image"
+                        >
+                          <Image size={20} />
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={() => videoInputRef.current?.click()}
+                          className="toolbar-btn"
+                          title="Add Video"
+                        >
+                          <Video size={20} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>
