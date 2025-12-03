@@ -1,0 +1,14 @@
+.dashboard-page {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #FEFBF6;
+}
+
+.dashboard-page-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-size: 18px;
+  color: #333;
+}
