@@ -148,8 +148,6 @@
   padding: 1.5rem;
   border-radius: 16px;
   border: 1px solid rgba(44, 62, 80, 0.1);
-  position: relative;
-  z-index: 1;
 }
 
 .reflection-category-title {
@@ -168,7 +166,6 @@
   padding: 1.5rem;
   border-left: 4px solid #2C3E50;
   margin-bottom: 1rem;
-  position: relative;
 }
 
 .reflection-question-card:last-child {
