@@ -180,53 +180,37 @@ const Dashboard = () => {
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip 
+                content={<CustomTooltip />} 
+                cursor={{ stroke: '#2980B9', strokeWidth: 1, strokeDasharray: '3 3' }}
+                animationDuration={0}
+                isAnimationActive={false}
+              />
               <Area 
                 type="monotone" 
                 dataKey="value" 
                 stroke="#2980B9" 
-                strokeWidth={3}
+                strokeWidth={2}
                 fill={`url(#gradient-${question.question_id})`}
                 dot={{ 
                   fill: '#2980B9', 
                   strokeWidth: 0, 
-                  r: 4 
+                  r: 3 
                 }}
                 activeDot={{ 
-                  r: 6, 
+                  r: 5, 
                   fill: '#2980B9',
                   stroke: '#fff',
-                  strokeWidth: 2
+                  strokeWidth: 2,
+                  style: { transition: 'all 0.2s ease' }
                 }}
                 connectNulls={false}
+                isAnimationActive={true}
+                animationDuration={800}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-
-        {/* Distribution */}
-        {question.distribution && Object.keys(question.distribution).length > 0 && (
-          <div className="distribution-section">
-            <h4 className="distribution-title">Value Distribution</h4>
-            <div className="distribution-grid">
-              {Object.entries(question.distribution)
-                .filter(([_, data]) => data.count > 0)
-                .sort(([_, a], [__, b]) => b.count - a.count)
-                .map(([value, data]) => (
-                  <div key={value} className="distribution-item">
-                    <div 
-                      className="distribution-color" 
-                      style={{ backgroundColor: data.color }}
-                    />
-                    <span className="distribution-label">{value}</span>
-                    <span className="distribution-count">{data.count}x</span>
-                    <span className="distribution-percentage">{data.percentage}%</span>
-                  </div>
-                ))
-              }
-            </div>
-          </div>
-        )}
       </div>
     );
   };

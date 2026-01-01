@@ -7,6 +7,15 @@
   font-family: 'Poppins', sans-serif;
 }
 
+/* Global: Remove all focus outlines from Recharts */
+*[class*="recharts"] {
+  outline: none !important;
+}
+
+*[class*="recharts"]:focus {
+  outline: none !important;
+}
+
 .dashboard-container {
   max-width: 1400px;
   margin: 0 auto;
@@ -301,25 +310,81 @@
   margin: 0 -1rem 1.5rem -1rem;
 }
 
+/* Remove focus outlines from chart elements */
+.chart-container svg,
+.chart-container svg *,
+.recharts-wrapper,
+.recharts-surface,
+.recharts-layer,
+.recharts-area,
+.recharts-area-area,
+.recharts-area-curve,
+.recharts-curve,
+.recharts-dot,
+.recharts-active-dot {
+  outline: none !important;
+}
+
+.chart-container svg:focus,
+.chart-container svg *:focus,
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-layer:focus,
+.recharts-area:focus,
+.recharts-area-area:focus,
+.recharts-area-curve:focus,
+.recharts-curve:focus,
+.recharts-dot:focus,
+.recharts-active-dot:focus {
+  outline: none !important;
+}
+
+.chart-container path,
+.chart-container circle,
+.chart-container rect,
+.chart-container line,
+.chart-container g {
+  outline: none !important;
+}
+
+.chart-container path:focus,
+.chart-container circle:focus,
+.chart-container rect:focus,
+.chart-container line:focus,
+.chart-container g:focus {
+  outline: none !important;
+}
+
 /* Custom Tooltip */
 .custom-tooltip {
-  background: rgba(44, 62, 80, 0.95);
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(10px);
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .tooltip-date {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.75rem;
+  color: #7f8c8d;
   margin: 0 0 0.25rem 0;
+  font-weight: 500;
 }
 
 .tooltip-value {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2980B9;
   margin: 0;
 }
 
