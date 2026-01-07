@@ -35,6 +35,48 @@ const getMediaUrl = (url) => {
   return `${BACKEND_URL}${url.startsWith('/') ? url : `/${url}`}`;
 };
 
+// Helper function to render formatted text (bold and italic)
+const renderFormattedText = (text) => {
+  if (!text) return '';
+  
+  // First handle bold (** **) and italic (* *)
+  // We need to process this carefully to handle overlapping cases
+  const parts = [];
+  let currentIndex = 0;
+  const textStr = String(text);
+  
+  // Regular expression to find **bold** or *italic*
+  const regex = /(\*\*[^*]+\*\*)|(\*[^*]+\*)/g;
+  let match;
+  
+  while ((match = regex.exec(textStr)) !== null) {
+    // Add text before the match
+    if (match.index > currentIndex) {
+      parts.push(textStr.substring(currentIndex, match.index));
+    }
+    
+    // Check if it's bold (**text**)
+    if (match[0].startsWith('**') && match[0].endsWith('**')) {
+      const content = match[0].slice(2, -2);
+      parts.push(<strong key={match.index}>{content}</strong>);
+    }
+    // Check if it's italic (*text*)
+    else if (match[0].startsWith('*') && match[0].endsWith('*')) {
+      const content = match[0].slice(1, -1);
+      parts.push(<em key={match.index}>{content}</em>);
+    }
+    
+    currentIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining text
+  if (currentIndex < textStr.length) {
+    parts.push(textStr.substring(currentIndex));
+  }
+  
+  return parts.length > 0 ? parts : text;
+};
+
 const Diary = () => {
   const { accessToken, logout } = useAuth();
   const { date } = useParams();
@@ -699,7 +741,7 @@ const Diary = () => {
                         entry.content_blocks.map((block, index) => (
                           <div key={index} className={`content-block block-${block.block_type}`}>
                             {block.block_type === 'text' && (
-                              <p className="block-text">{block.text_content}</p>
+                              <p className="block-text">{renderFormattedText(block.text_content)}</p>
                             )}
                             {block.block_type === 'image' && (
                               <div className="block-media">
@@ -785,7 +827,7 @@ const Diary = () => {
                 selectedEntry.content_blocks.map((block, index) => (
                   <div key={index} className={`content-block block-${block.block_type}`}>
                     {block.block_type === 'text' && (
-                      <p className="block-text">{block.text_content}</p>
+                      <p className="block-text">{renderFormattedText(block.text_content)}</p>
                     )}
                     {block.block_type === 'image' && (
                       <div className="block-media">
@@ -908,6 +950,7 @@ const Diary = () => {
                             {/* Text Block */}
                             {block.block_type === 'text' && (
                               <textarea
+                                id={`textarea-${index}`}
                                 value={block.text_content}
                                 onChange={(e) => updateContentBlock(index, 'text_content', e.target.value)}
                                 placeholder="Text (optional)"

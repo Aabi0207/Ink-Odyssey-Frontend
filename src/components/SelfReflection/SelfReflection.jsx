@@ -34,6 +34,11 @@ const SelfReflection = () => {
   
   // Background image state
   const [backgroundImage, setBackgroundImage] = useState('');
+  // Category rotation state
+  const categories = [
+    'abstract', 'pattern', 'minimal', 'nature', 'history', 'art', 'technology', 'food', 'workspace', 'ocean', 'architecture'
+  ];
+  const categoryIndexRef = React.useRef(0);
   
   // Dropdown state for custom Material UI-style selects
   const [openDropdowns, setOpenDropdowns] = useState({});
@@ -60,8 +65,11 @@ const SelfReflection = () => {
   // Fetch random landscape image from Unsplash
   const fetchBackgroundImage = async () => {
     try {
+      // Rotate category
+      const category = categories[categoryIndexRef.current];
+      categoryIndexRef.current = (categoryIndexRef.current + 1) % categories.length;
       const response = await fetch(
-        `https://api.unsplash.com/photos/random?query=abstract,gradient,pattern,texture,minimalist,nature,historic,art,motivation,dreamy&client_id=${UNSPLASH_ACCESS_KEY}`
+        `https://api.unsplash.com/photos/random?query=${category}&client_id=${UNSPLASH_ACCESS_KEY}`
       );
       if (response.ok) {
         const data = await response.json();

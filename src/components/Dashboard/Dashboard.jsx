@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
+import { Tooltip as ReactTooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
 import { format, subDays, startOfYear, endOfYear, subYears, parseISO } from 'date-fns';
 import { TrendingUp, Calendar as CalendarIcon, BarChart3, ChevronLeft, ChevronRight, BookOpen, Flame, Activity } from 'lucide-react';
 import Navigation from '../Navigation/Navigation';
@@ -159,8 +161,8 @@ const Dashboard = () => {
             >
               <defs>
                 <linearGradient id={`gradient-${question.question_id}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2980B9" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#2980B9" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#e81123" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#e81123" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
@@ -182,24 +184,24 @@ const Dashboard = () => {
               />
               <Tooltip 
                 content={<CustomTooltip />} 
-                cursor={{ stroke: '#2980B9', strokeWidth: 1, strokeDasharray: '3 3' }}
+                cursor={{ stroke: '#e81123', strokeWidth: 1, strokeDasharray: '3 3' }}
                 animationDuration={0}
                 isAnimationActive={false}
               />
               <Area 
                 type="monotone" 
                 dataKey="value" 
-                stroke="#2980B9" 
+                stroke="#e81123" 
                 strokeWidth={2}
                 fill={`url(#gradient-${question.question_id})`}
                 dot={{ 
-                  fill: '#2980B9', 
+                  fill: '#e81123', 
                   strokeWidth: 0, 
                   r: 3 
                 }}
                 activeDot={{ 
                   r: 5, 
-                  fill: '#2980B9',
+                  fill: '#e81123',
                   stroke: '#fff',
                   strokeWidth: 2,
                   style: { transition: 'all 0.2s ease' }
@@ -306,7 +308,8 @@ const Dashboard = () => {
                 return {};
               }
               return {
-                'data-tip': `${format(new Date(value.date), 'MMM dd, yyyy')}: ${value.choice || 'No response'}`
+                'data-tooltip-id': 'heatmap-tooltip',
+                'data-tooltip-content': `${format(new Date(value.date), 'MMM dd, yyyy')}: ${value.choice || 'No response'}`
               };
             }}
             transformDayElement={(element, value) => {
@@ -320,6 +323,29 @@ const Dashboard = () => {
                 });
               }
               return element;
+            }}
+          />
+          <ReactTooltip 
+            id="heatmap-tooltip" 
+            className="custom-tooltip"
+            style={{ 
+              backgroundColor: 'white', 
+              color: '#2c3e50',
+              border: '1px solid #e0e0e0',
+              borderRadius: '8px',
+              padding: '0.5rem 0.75rem',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              opacity: 1
+            }}
+            render={({ content }) => {
+              if (!content) return null;
+              const [date, choice] = content.split(': ');
+              return (
+                <div>
+                  <p className="tooltip-date">{date}</p>
+                  <p className="tooltip-value">{choice}</p>
+                </div>
+              );
             }}
           />
         </div>

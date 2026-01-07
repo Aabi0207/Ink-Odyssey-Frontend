@@ -706,6 +706,15 @@ textarea.form-control {
   padding-bottom: 2rem;
   margin-bottom: 2rem;
   border-bottom: 1px solid rgba(44, 62, 80, 0.08);
+  display: flex;
+  flex-direction: column;
+  min-height: 250px;
+}
+
+.editor-block.block-type-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .editor-block:last-child {
@@ -716,21 +725,46 @@ textarea.form-control {
 
 .editor-textarea {
   width: 100%;
-  min-height: 60px;
+  min-height: 200px;
   border: none;
-  resize: none;
+  resize: vertical;
   outline: none;
   font-family: 'Playfair Display', serif;
   font-size: 1.15rem;
   line-height: 1.8;
   color: #2C3E50;
   padding: 0.5rem 0;
-  overflow: hidden;
+  overflow-y: auto;
   background: transparent;
+  flex: 1;
 }
 
 .editor-textarea:focus {
-  min-height: 120px;
+  min-height: 200px;
+}
+
+/* Custom scrollbar for textarea */
+.editor-textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.editor-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.editor-textarea::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.editor-textarea:hover::-webkit-scrollbar-thumb,
+.editor-textarea:active::-webkit-scrollbar-thumb {
+  background: #2c3e50;
+}
+
+.editor-textarea::-webkit-scrollbar-thumb:hover {
+  background: #1a252f;
 }
 
 /* Side Controls */
