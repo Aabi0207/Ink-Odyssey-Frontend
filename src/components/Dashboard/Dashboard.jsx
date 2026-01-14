@@ -217,6 +217,111 @@ const Dashboard = () => {
     );
   };
 
+  // Render number question chart (smooth line with gradient - teal/cyan theme)
+  const renderNumberChart = (question) => {
+    const chartData = question.line_chart.data.map(item => ({
+      date: item.date,
+      value: item.value
+    }));
+
+    const stats = question.line_chart.statistics;
+
+    return (
+      <div key={question.question_id} className="chart-card number-chart">
+        <div className="chart-header">
+          <div className="chart-title-section">
+            <BarChart3 className="chart-icon number-icon" size={20} />
+            <div>
+              <h3 className="chart-title">{question.question_text}</h3>
+              <p className="chart-category">{question.category || 'General'}</p>
+            </div>
+          </div>
+          {stats && stats.count > 0 && (
+            <div className="chart-stats">
+              <div className="stat-item">
+                <span className="stat-label">Avg</span>
+                <span className="stat-value">{stats.average}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Min</span>
+                <span className="stat-value">{stats.min}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Max</span>
+                <span className="stat-value">{stats.max}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Count</span>
+                <span className="stat-value">{stats.count}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="chart-container">
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart 
+              data={chartData}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id={`gradient-number-${question.question_id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#0891b2" stopOpacity={0.25}/>
+                  <stop offset="95%" stopColor="#0891b2" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+              <XAxis 
+                dataKey="date" 
+                tickFormatter={formatXAxis}
+                stroke="#95a5a6"
+                tick={{ fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                interval={getTickInterval()}
+                minTickGap={20}
+              />
+              <YAxis 
+                stroke="#95a5a6"
+                tick={{ fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip 
+                content={<CustomTooltip />} 
+                cursor={{ stroke: '#0891b2', strokeWidth: 1, strokeDasharray: '3 3' }}
+                animationDuration={0}
+                isAnimationActive={false}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="value" 
+                stroke="#0891b2" 
+                strokeWidth={1.5}
+                fill={`url(#gradient-number-${question.question_id})`}
+                dot={{ 
+                  fill: '#0891b2', 
+                  strokeWidth: 0, 
+                  r: 2.5 
+                }}
+                activeDot={{ 
+                  r: 4, 
+                  fill: '#0891b2',
+                  stroke: '#fff',
+                  strokeWidth: 1.5,
+                  style: { transition: 'all 0.2s ease' }
+                }}
+                connectNulls={false}
+                isAnimationActive={true}
+                animationDuration={800}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    );
+  };
+
   // Render choice question chart (calendar heatmap)
   const renderChoiceChart = (question) => {
     // Use selected year for heatmap
@@ -386,11 +491,11 @@ const Dashboard = () => {
       const questionType = question.question_type;
       
       if (!grouped[category]) {
-        grouped[category] = { range: [], choice: [], text: [] };
+        grouped[category] = { range: [], choice: [], text: [], number: [] };
       }
       
       // Only add if the question type is valid
-      if (questionType === 'range' || questionType === 'choice') {
+      if (questionType === 'range' || questionType === 'choice' || questionType === 'number') {
         grouped[category][questionType].push(question);
       }
     });
@@ -536,6 +641,13 @@ const Dashboard = () => {
             {questions.choice.length > 0 && (
               <div className="charts-grid">
                 {questions.choice.map(question => renderChoiceChart(question))}
+              </div>
+            )}
+
+            {/* Number Questions */}
+            {questions.number.length > 0 && (
+              <div className="charts-grid">
+                {questions.number.map(question => renderNumberChart(question))}
               </div>
             )}
           </div>

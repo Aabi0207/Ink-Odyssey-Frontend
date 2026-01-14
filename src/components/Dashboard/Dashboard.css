@@ -242,6 +242,15 @@
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 }
 
+/* Number Chart Styling */
+.number-chart .chart-icon.number-icon {
+  color: #0891b2;
+}
+
+.number-chart .stat-value {
+  color: #0891b2;
+}
+
 /* Chart Header */
 .chart-header {
   display: flex;

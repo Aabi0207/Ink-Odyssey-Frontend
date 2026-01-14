@@ -127,6 +127,8 @@ const SelfReflection = () => {
             existingResponses[response.question_id] = response.choice_response;
           } else if (response.text_response) {
             existingResponses[response.question_id] = response.text_response;
+          } else if (response.number_response !== null) {
+            existingResponses[response.question_id] = response.number_response;
           }
         });
         setResponses(existingResponses);
@@ -164,6 +166,11 @@ const SelfReflection = () => {
           response.choice_response = value;
         } else if (question.question_type === 'text') {
           response.text_response = value || '';
+        } else if (question.question_type === 'number') {
+          if (value === undefined || value === '') {
+            throw new Error(`Please answer: ${question.question_text}`);
+          }
+          response.number_response = parseFloat(value);
         }
         
         return response;
@@ -423,6 +430,17 @@ const SelfReflection = () => {
           placeholder="Enter your thoughts..."
         />
       );
+    } else if (question.question_type === 'number') {
+      return (
+        <input
+          type="number"
+          step="any"
+          value={value !== undefined ? value : ''}
+          onChange={(e) => handleResponseChange(question.id, e.target.value)}
+          className="reflection-number-input"
+          placeholder="Enter a number..."
+        />
+      );
     }
   };
 
@@ -563,6 +581,7 @@ const SelfReflection = () => {
                     <option value="range">Range (1-10)</option>
                     <option value="choice">Multiple Choice</option>
                     <option value="text">Text Response</option>
+                    <option value="number">Number Input</option>
                   </select>
                 </div>
 

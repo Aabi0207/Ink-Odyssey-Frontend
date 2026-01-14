@@ -360,6 +360,41 @@
   box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
 }
 
+/* Number Input */
+.reflection-number-input {
+  width: 100%;
+  max-width: 200px;
+  padding: 0.875rem;
+  border: 2px solid #E0E0E0;
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  color: #2C3E50;
+  transition: border-color 0.2s ease;
+  background: white;
+}
+
+.reflection-number-input:focus {
+  outline: none;
+  border-color: #2C3E50;
+  box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+}
+
+.reflection-number-input::placeholder {
+  color: #999;
+}
+
+/* Remove spinner arrows for number input */
+.reflection-number-input::-webkit-outer-spin-button,
+.reflection-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.reflection-number-input[type=number] {
+  -moz-appearance: textfield;
+}
+
 /* Submit Button */
 .reflection-submit-btn {
   max-width: 300px;
