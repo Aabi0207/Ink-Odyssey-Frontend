@@ -170,7 +170,15 @@ const SelfReflection = () => {
           if (value === undefined || value === '') {
             throw new Error(`Please answer: ${question.question_text}`);
           }
-          response.number_response = parseFloat(value);
+          // Normalize the value to handle different decimal separators
+          const normalizedValue = String(value).replace(',', '.');
+          const parsedValue = parseFloat(normalizedValue);
+          
+          if (isNaN(parsedValue)) {
+            throw new Error(`Invalid number for: ${question.question_text}`);
+          }
+          
+          response.number_response = parsedValue;
         }
         
         return response;
@@ -436,9 +444,18 @@ const SelfReflection = () => {
           type="number"
           step="any"
           value={value !== undefined ? value : ''}
-          onChange={(e) => handleResponseChange(question.id, e.target.value)}
+          onChange={(e) => {
+            // Normalize the value to ensure consistent decimal handling
+            let normalizedValue = e.target.value;
+            // Replace comma with period for locales that use comma as decimal separator
+            if (normalizedValue) {
+              normalizedValue = normalizedValue.replace(',', '.');
+            }
+            handleResponseChange(question.id, normalizedValue);
+          }}
           className="reflection-number-input"
           placeholder="Enter a number..."
+          lang="en-US"
         />
       );
     }
