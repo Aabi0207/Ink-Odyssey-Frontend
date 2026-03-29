@@ -16,7 +16,9 @@ import {
   X, 
   Save, 
   Calendar,
-  BookOpen
+  BookOpen,
+  Tag,
+  Plus
 } from 'lucide-react';
 import './Diary.css';
 import Navigation from '../Navigation/Navigation';
@@ -95,11 +97,36 @@ const Diary = () => {
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
   
+  // Tag state
+  const [availableTags, setAvailableTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  
   // Form state
   const [formData, setFormData] = useState({
     title: '',
-    content_blocks: []
+    content_blocks: [],
+    tags: []
   });
+
+  // Fetch all tags
+  const fetchTags = async () => {
+    if (!accessToken) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/tags/`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const tagsData = data.results || data;
+        setAvailableTags(tagsData);
+      }
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+    }
+  };
 
   // Fetch all entries
   const fetchEntries = async (date = null) => {
@@ -512,12 +539,72 @@ const Diary = () => {
     });
   };
 
+  // Tag Handling Functions
+  const [openTagDropdown, setOpenTagDropdown] = useState(false);
+
+  const toggleTagDropdown = () => setOpenTagDropdown(!openTagDropdown);
+  const closeTagDropdown = () => setOpenTagDropdown(false);
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault(); // Stop form submission
+      e.stopPropagation();
+      const newTag = tagInput.trim();
+      if (newTag && !formData.tags.includes(newTag)) {
+        setFormData(prev => ({
+          ...prev,
+          tags: [...prev.tags, newTag]
+        }));
+      }
+      setTagInput('');
+    } else if (e.key === 'Backspace' && !tagInput && formData.tags.length > 0) {
+      setFormData(prev => {
+        const updatedTags = [...prev.tags];
+        updatedTags.pop();
+        return { ...prev, tags: updatedTags };
+      });
+    }
+  };
+
+  const handleTagChange = (e) => {
+    setTagInput(e.target.value);
+  };
+
+  const handleTagSelect = (selectedTag) => {
+    if (selectedTag && !formData.tags.includes(selectedTag)) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, selectedTag]
+      }));
+      setTagInput('');
+    }
+    closeTagDropdown();
+  };
+
+  const removeTag = (tagToRemove) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter(tag => tag !== tagToRemove)
+    });
+  };
+
+  const addSuggestionTag = (tagName) => {
+    if (!formData.tags.includes(tagName)) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, tagName]
+      });
+    }
+  };
+
   // Reset form
   const resetForm = () => {
     setFormData({
       title: '',
-      content_blocks: []
+      content_blocks: [],
+      tags: []
     });
+    setTagInput('');
     setIsCreating(false);
     setIsEditing(false);
     setSelectedEntry(null);
@@ -533,10 +620,11 @@ const Diary = () => {
         text_content: block.text_content || '',
         media_url: block.media_url || '',
         file_data: '', // New files will be added here
-        caption: block.caption || ''
-      }))
-    });
-    setSelectedEntry(entry);
+      caption: block.caption || ''
+    })),
+    tags: entry.tags ? entry.tags.map(t => typeof t === 'string' ? t : t.name) : []
+  });
+  setSelectedEntry(entry);
     setIsEditing(true);
     setView('edit');
   };
@@ -572,6 +660,7 @@ const Diary = () => {
     
     fetchQuote();
     fetchStats();
+    fetchTags();
   }, [accessToken, date]);
 
   if (loading && entries.length === 0) {
@@ -735,6 +824,16 @@ const Diary = () => {
                       <span className="entry-date">{formatDate(entry.created_at)}</span>
                     </div>
                     
+                    {/* Tags in List View */}
+                    {entry.tags && entry.tags.length > 0 && (
+                      <div className="entry-tags">
+                        {entry.tags.map((tag, idx) => {
+                          const tagName = typeof tag === 'string' ? tag : tag.name;
+                          return <span key={idx} className="entry-tag">{tagName}</span>;
+                        })}
+                      </div>
+                    )}
+                    
                     {/* Display content blocks */}
                     <div className="content-blocks">
                       {entry.content_blocks && entry.content_blocks.length > 0 ? (
@@ -822,6 +921,16 @@ const Diary = () => {
               )}
             </div>
 
+            {/* Tags in Detail View */}
+            {selectedEntry.tags && selectedEntry.tags.length > 0 && (
+              <div className="entry-tags" style={{ marginBottom: '1.5rem' }}>
+                {selectedEntry.tags.map((tag, idx) => {
+                  const tagName = typeof tag === 'string' ? tag : tag.name;
+                  return <span key={idx} className="entry-tag">#{tagName}</span>;
+                })}
+              </div>
+            )}
+
             <div className="content-blocks">
               {selectedEntry.content_blocks && selectedEntry.content_blocks.length > 0 ? (
                 selectedEntry.content_blocks.map((block, index) => (
@@ -903,6 +1012,87 @@ const Diary = () => {
                     className="post-title-input"
                     maxLength={300}
                   />
+                </div>
+
+                {/* Tag Input */}
+                <div className="tag-input-wrapper">
+                  <div className="tag-input-container">
+                    <Tag size={16} style={{ color: '#2980B9', marginLeft: '0.25rem' }} />
+                    {formData.tags.map((tag, index) => (
+                      <span key={index} className="diary-tag">
+                        {tag}
+                        <span className="tag-remove" onClick={() => removeTag(tag)}>
+                          <X size={12} />
+                        </span>
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      className="tag-input"
+                      placeholder={formData.tags.length === 0 ? "Add tags (press Enter)..." : ""}
+                      value={tagInput}
+                      onChange={handleTagChange}
+                      onKeyDown={handleTagKeyDown}
+                    />
+                    
+                    {/* Plus icon for mobile devices */}
+                    <button 
+                      type="button" 
+                      className="mobile-add-tag-btn"
+                      onClick={() => {
+                        const newTag = tagInput.trim();
+                        if (newTag && !formData.tags.includes(newTag)) {
+                          setFormData(prev => ({
+                            ...prev,
+                            tags: [...prev.tags, newTag]
+                          }));
+                          setTagInput('');
+                        }
+                      }}
+                      title="Add Tag"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  
+                  {/* Select dropdown outside the box */}
+                  {availableTags.length > 0 && (
+                    <div className={`mui-select-container tag-mui-select ${openTagDropdown ? 'open' : ''}`}>
+                      <div 
+                        className={`mui-select ${openTagDropdown ? 'mui-select-open' : ''}`}
+                        onClick={toggleTagDropdown}
+                      >
+                        <div className="mui-select-value">
+                          Existing tags...
+                        </div>
+                        <ChevronDown className={`mui-select-icon ${openTagDropdown ? 'rotate' : ''}`} size={20} />
+                      </div>
+                      {openTagDropdown && (
+                        <>
+                          <div className="mui-select-backdrop" onClick={closeTagDropdown} />
+                          <div className="mui-select-menu">
+                            {availableTags
+                              .filter(tag => !formData.tags.includes(tag.name))
+                              .map((tag) => (
+                                <div
+                                  key={tag.id}
+                                  className="mui-select-item"
+                                  onClick={() => handleTagSelect(tag.name)}
+                                >
+                                  {tag.name}
+                                </div>
+                              ))
+                            }
+                            {availableTags.filter(tag => !formData.tags.includes(tag.name)).length === 0 && (
+                              <div className="mui-select-item disabled" style={{ opacity: 0.5, pointerEvents: 'none' }}>
+                                No more tags available
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Editor Container */}
