@@ -297,7 +297,7 @@
 
 .entry-card:hover {
   box-shadow: 0 4px 12px rgba(41, 128, 185, 0.12);
-  border-color: #2980B9;
+  border-color: #000;
 }
 
 .entry-header {
@@ -343,9 +343,11 @@
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  opacity: 0.7;
+  width: 120px;
+  height: auto;
+  margin: 0 auto 1.5rem auto;
+  opacity: 0.85;
+  display: block;
 }
 
 .empty-state h3 {
@@ -987,6 +989,7 @@ textarea.form-control {
   border-radius: 50px;
   border: 1px solid rgba(41, 128, 185, 0.15);
   box-shadow: 0 2px 8px rgba(41, 128, 185, 0.1);
+  border: #000 solid 1px;
 }
 
 .toolbar-btn {
@@ -998,15 +1001,16 @@ textarea.form-control {
   border: none;
   background: transparent;
   border-radius: 50%;
-  color: #2980B9;
+  color: #2C3E50;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .toolbar-btn:hover {
-  background: rgba(255, 255, 255, 0.8);
-  color: #1a5f8f;
+  background: rgb(255, 255, 255);
+  color: #000;
   transform: translateY(-2px);
+  border: #000 solid 1px;
 }
 
 /* Buttons */

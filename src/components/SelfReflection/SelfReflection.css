@@ -1,4 +1,5 @@
 /* Self Reflection Component Styles */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 
 .reflection-container {
   min-height: 100vh;
@@ -29,7 +30,7 @@
   margin-bottom: 2rem;
   background: white;
   padding: 1rem;
-  border-radius: 12px;
+  border-radius: 50px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -47,7 +48,7 @@
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 50px;
   transition: all 0.3s ease;
 }
 
@@ -56,8 +57,9 @@
 }
 
 .reflection-tab.active {
-  background: #2980B9;
-  color: white;
+  background: #000000;
+  color: #fff;
+  font-weight: 700;
 }
 
 .reflection-main {
@@ -92,9 +94,9 @@
 }
 
 .reflection-title {
-  font-family: 'Playfair Display', serif;
+  font-family: "Montserrat", sans-serif;
   font-size: 2rem;
-  color: #2C3E50;
+  color: #000000;
   margin: 0;
   font-weight: 700;
 }
@@ -363,7 +365,7 @@
 /* Number Input */
 .reflection-number-input {
   width: 100%;
-  max-width: 200px;
+  max-width: 140px;
   padding: 0.875rem;
   border: 2px solid #E0E0E0;
   border-radius: 8px;
@@ -444,9 +446,10 @@
 
 .reflection-questions-header h2 {
   margin: 0;
-  color: #2C3E50;
-  font-family: 'Playfair Display', serif;
+  color: #000000;
+  font-family: "Montserrat", sans-serif;
   font-size: 1.75rem;
+  font-weight: 700;
 }
 
 .reflection-add-question-btn {
@@ -709,7 +712,7 @@
   background: #F8F9FA;
   border-radius: 12px;
   padding: 1.5rem;
-  border-left: 4px solid #2980B9;
+  border-left: 4px solid #2C3E50;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -745,23 +748,23 @@
 .reflection-category-badge,
 .reflection-order-badge {
   padding: 0.25rem 0.75rem;
-  border-radius: 6px;
+  border-radius: 50px;
   font-size: 0.8rem;
   font-weight: 500;
 }
 
 .reflection-type-badge {
-  background: #D5E8F5;
+  background: #d5e8f55c;
   color: #2980B9;
 }
 
 .reflection-category-badge {
-  background: #D4EDDA;
+  background: #d4edda60;
   color: #28A745;
 }
 
 .reflection-order-badge {
-  background: #F8D7DA;
+  background: #f8d7da42;
   color: #DC3545;
 }
 
@@ -896,6 +899,10 @@
 
   .reflection-submit-btn {
     max-width: 100%;
+  }
+
+  .reflection-number-input {
+    max-width: 100px;
   }
 
   .reflection-form-row {

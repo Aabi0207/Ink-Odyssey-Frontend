@@ -454,7 +454,7 @@ const SelfReflection = () => {
             handleResponseChange(question.id, normalizedValue);
           }}
           className="reflection-number-input"
-          placeholder="Enter a number..."
+          placeholder="100.0"
           lang="en-US"
         />
       );
@@ -483,7 +483,6 @@ const SelfReflection = () => {
         <div className="reflection-header">
           <div className="reflection-header-content">
             <div className="reflection-header-left">
-              <BookOpen size={32} className="reflection-icon" />
               <div>
                 <h1 className="reflection-title">Daily Reflection</h1>
                 <p className="reflection-subtitle">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>

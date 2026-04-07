@@ -1,4 +1,6 @@
 /* Dashboard Container */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
 .dashboard {
   width: 100%;
   min-height: 100vh;
@@ -104,10 +106,10 @@
 
 .dashboard-header h1 {
   font-size: 2rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #2C3E50;
   margin: 0 0 0.5rem 0;
-  font-family: 'Playfair Display', serif;
+  font-family: "Montserrat", sans-serif;
 }
 
 .dashboard-subtitle {
@@ -122,7 +124,7 @@
   gap: 0.5rem;
   background: white;
   padding: 0.375rem;
-  border-radius: 10px;
+  border-radius: 50px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -131,7 +133,7 @@
   border: none;
   background: transparent;
   color: #7f8c8d;
-  border-radius: 7px;
+  border-radius: 50px;
   font-family: 'Poppins', sans-serif;
   font-size: 0.9rem;
   font-weight: 500;
@@ -145,8 +147,9 @@
 }
 
 .day-button.active {
-  background: #2980B9;
+  background: #2C3E50;
   color: white;
+  font-weight: 700;
 }
 
 /* Overview Stats */
@@ -159,29 +162,39 @@
 
 .stat-card {
   background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  border: 1px solid #e9ecef;
+  padding: 1.75rem;
+  border-radius: 28px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
-  gap: 1rem;
-  transition: border-color 0.2s ease;
+  gap: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .stat-card:hover {
-  border-color: #2980B9;
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 .stat-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: #f8f9fa;
-  border-radius: 10px;
-  color: #2980B9;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #2a2a2a, #000000);
+  border-radius: 50%;
+  color: white;
   flex-shrink: 0;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card:hover .stat-icon {
+  transform: scale(1.05);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.2);
 }
 
 .stat-info {
@@ -192,23 +205,42 @@
 }
 
 .stat-label {
-  font-size: 0.875rem;
-  color: #7f8c8d;
+  font-size: 0.85rem;
+  color: #71717a;
   margin: 0;
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .stat-number {
-  font-size: 1.75rem;
+  font-size: 2rem;
   font-weight: 700;
-  color: #2C3E50;
+  color: #18181b;
   margin: 0;
   line-height: 1;
 }
 
 /* Category Section */
 .category-section {
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard-category-separator {
+  border: none;
+  height: 3px;
+  background-color: #111;
+  border-radius: 4px;
+  margin: 3rem 0;
+  opacity: 0.4;
+}
+
+.dashboard-chart-separator {
+  border: none;
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 1.5rem 0;
+  width: 100%;
+  grid-column: 1 / -1;
 }
 
 .category-title {
@@ -218,13 +250,13 @@
   margin: 0 0 1.5rem 0;
   padding-bottom: 0.75rem;
   border-bottom: 2px solid #ECF0F1;
-  font-family: 'Playfair Display', serif;
+  font-family: "Montserrat", sans-serif;
 }
 
 /* Charts Grid */
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+  grid-template-columns: 1fr;
   gap: 2rem;
   margin-bottom: 2rem;
 }

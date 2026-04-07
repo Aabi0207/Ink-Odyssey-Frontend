@@ -780,9 +780,7 @@ const Diary = () => {
             <div className="entries-list">
               {entries.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-icon">
-                    <BookOpen size={48} />
-                  </div>
+                  <img src="/solid-book-image.png" alt="Empty book" className="empty-icon" />
                   <h3>No memories for this day</h3>
                   <p>Start capturing your thoughts and moments!</p>
                   <button 

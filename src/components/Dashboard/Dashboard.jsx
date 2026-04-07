@@ -363,7 +363,7 @@ const Dashboard = () => {
         </div>
 
         {/* Color Legend */}
-        <div className="choice-legend">
+        {/* <div className="choice-legend">
           {question.line_chart.datasets.map(dataset => (
             <div key={dataset.label} className="legend-item">
               <div 
@@ -373,7 +373,7 @@ const Dashboard = () => {
               <span className="legend-label">{dataset.label}</span>
             </div>
           ))}
-        </div>
+        </div> */}
 
         {/* Year Selector */}
         <div className="year-selector">
@@ -626,32 +626,37 @@ const Dashboard = () => {
         </div>
 
         {/* Charts grouped by category */}
-        {Object.entries(groupedQuestions).map(([category, questions]) => (
-          <div key={category} className="category-section">
-            <h2 className="category-title">{category}</h2>
-            
-            {/* Range Questions */}
-            {questions.range.length > 0 && (
-              <div className="charts-grid">
-                {questions.range.map(question => renderRangeChart(question))}
-              </div>
-            )}
+        {Object.entries(groupedQuestions).map(([category, questions], categoryIndex, categoriesArray) => {
+          const categoryCharts = [
+            ...questions.range.map(question => ({ id: question.id, node: renderRangeChart(question) })),
+            ...questions.choice.map(question => ({ id: question.id, node: renderChoiceChart(question) })),
+            ...questions.number.map(question => ({ id: question.id, node: renderNumberChart(question) }))
+          ];
 
-            {/* Choice Questions */}
-            {questions.choice.length > 0 && (
-              <div className="charts-grid">
-                {questions.choice.map(question => renderChoiceChart(question))}
+          return (
+            <React.Fragment key={category}>
+              <div className="category-section">
+                <h2 className="category-title">{category}</h2>
+                
+                {categoryCharts.length > 0 && (
+                  <div className="charts-grid">
+                    {categoryCharts.map((chart, index) => (
+                      <React.Fragment key={chart.id}>
+                        {chart.node}
+                        {index < categoryCharts.length - 1 && (
+                          <hr className="dashboard-chart-separator" />
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-
-            {/* Number Questions */}
-            {questions.number.length > 0 && (
-              <div className="charts-grid">
-                {questions.number.map(question => renderNumberChart(question))}
-              </div>
-            )}
-          </div>
-        ))}
+              {categoryIndex < categoriesArray.length - 1 && (
+                <hr className="dashboard-category-separator" />
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
     </>
