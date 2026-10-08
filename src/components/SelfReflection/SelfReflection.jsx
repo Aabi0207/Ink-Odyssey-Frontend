@@ -153,24 +153,24 @@ const SelfReflection = () => {
     try {
       setSaving(true);
       
-      const responsesArray = questions.map(question => {
-        const response = { question_id: question.id };
+      const responsesArray = [];
+      
+      for (const question of questions) {
         const value = responses[question.id];
         
+        if (value === undefined || value === null || value === '') {
+          continue;
+        }
+        
+        const response = { question_id: question.id };
+        
         if (question.question_type === 'range') {
-          response.range_response = value !== undefined ? value : question.min_value;
+          response.range_response = value;
         } else if (question.question_type === 'choice') {
-          if (!value) {
-            throw new Error(`Please answer: ${question.question_text}`);
-          }
           response.choice_response = value;
         } else if (question.question_type === 'text') {
-          response.text_response = value || '';
+          response.text_response = value;
         } else if (question.question_type === 'number') {
-          if (value === undefined || value === '') {
-            throw new Error(`Please answer: ${question.question_text}`);
-          }
-          // Normalize the value to handle different decimal separators
           const normalizedValue = String(value).replace(',', '.');
           const parsedValue = parseFloat(normalizedValue);
           
@@ -181,8 +181,8 @@ const SelfReflection = () => {
           response.number_response = parsedValue;
         }
         
-        return response;
-      });
+        responsesArray.push(response);
+      }
       
       const today = new Date().toISOString().split('T')[0];
       const data = {
@@ -370,7 +370,7 @@ const SelfReflection = () => {
             onClick={() => toggleDropdown(question.id)}
           >
             <div className="mui-select-value">
-              {value !== undefined ? value : question.min_value}
+              {value !== undefined ? value : 'Select a value'}
             </div>
             <ChevronDown className={`mui-select-icon ${isOpen ? 'rotate' : ''}`} size={20} />
           </div>
