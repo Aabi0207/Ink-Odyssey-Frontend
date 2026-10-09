@@ -329,7 +329,7 @@ const MemoryArchive = () => {
                 )}
               </div>
               
-              <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+              <div className="filter-controls" style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
                 {/* Custom Multi-Select Dropdown for Tags */}
                 <div className="multi-select-container" ref={tagDropdownRef}>
                   <div 

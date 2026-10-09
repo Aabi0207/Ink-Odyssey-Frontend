@@ -615,6 +615,167 @@
   }
 
   .calendar-section {
-    margin-top: -70px;
+    margin-top: -50px;
+    padding: 18px 12px 20px;
+    border-radius: 22px;
+  }
+
+  .memory-archive-container {
+    padding: 24px 10px 40px;
+    gap: 24px;
+  }
+
+  .archive-content {
+    gap: 24px;
+  }
+
+  .calendar-header {
+    position: relative;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+
+  .calendar-month {
+    font-size: 1.05rem;
+    letter-spacing: 0.6px;
+    text-align: center;
+  }
+
+  .calendar-nav-btn {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+  }
+
+  .calendar-nav-btn:first-child {
+    left: 0;
+  }
+
+  .calendar-nav-btn:last-child {
+    right: 0;
+  }
+
+  .calendar-grid {
+    gap: 5px;
+  }
+
+  .calendar-day-header {
+    font-size: 0.63rem;
+    padding-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+
+  .calendar-cell {
+    min-width: 0;
+    padding: 5px 4px;
+    border-radius: 9px;
+  }
+
+  .calendar-date {
+    font-size: 0.82rem;
+    line-height: 1.1;
+    margin-bottom: 2px;
+  }
+
+  .calendar-tags {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-end;
+    gap: 3px;
+  }
+
+  .calendar-tag-item {
+    gap: 0;
+  }
+
+  .calendar-tag-dot {
+    width: 6px;
+    height: 6px;
+    border-color: rgba(44, 62, 80, 0.35);
+  }
+
+  .calendar-tags > span {
+    font-size: 8px !important;
+    line-height: 1;
+  }
+
+  .tags-summary-section {
+    margin-top: 20px;
+    padding-top: 14px;
+  }
+
+  .tags-summary-title {
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+  }
+
+  .tag-pill {
+    padding: 5px 9px;
+    font-size: 0.78rem;
+  }
+
+  .filter-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .active-filter {
+    min-width: 0;
+    font-size: 0.82rem;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+
+  .filter-controls {
+    width: 100%;
+    gap: 8px !important;
+  }
+
+  .multi-select-container,
+  .sort-dropdown-container {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .filter-controls .order-select {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    padding: 7px 9px;
+    font-size: 0.78rem;
+  }
+
+  .sort-dropdown-trigger {
+    gap: 6px;
+  }
+
+  .multi-select-dropdown,
+  .sort-dropdown-menu {
+    min-width: 100%;
+  }
+
+  .memory-card {
+    padding: 18px 15px;
+    border-radius: 17px;
+  }
+
+  .memory-title {
+    font-size: 1.15rem;
+  }
+
+  .memory-date {
+    font-size: 0.72rem;
+  }
+
+  .block-text {
+    font-size: 0.9rem;
+  }
+
+  .pagination-btn {
+    padding: 8px 13px;
+    font-size: 0.76rem;
   }
 }
