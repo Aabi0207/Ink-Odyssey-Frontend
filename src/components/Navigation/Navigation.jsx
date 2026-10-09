@@ -63,6 +63,9 @@ const Navigation = () => {
           <Link to="/reflection" className={isActive("/reflection")}>
             Reflection
           </Link>
+          <Link to="/archive" className={isActive("/archive")}>
+            Archive
+          </Link>
           <Link to="/dashboard" className={isActive("/dashboard")}>
             Dashboard
           </Link>
@@ -98,6 +101,13 @@ const Navigation = () => {
             onClick={toggleMenu}
           >
             Reflection
+          </Link>
+          <Link
+            to="/archive"
+            className={isActive("/archive")}
+            onClick={toggleMenu}
+          >
+            Archive
           </Link>
           <Link
             to="/dashboard"

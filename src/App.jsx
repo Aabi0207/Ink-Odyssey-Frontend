@@ -8,6 +8,7 @@ import ReflectionPage from './pages/ReflectionPage'
 import DiaryRedirect from './components/DiaryRedirect'
 import ProtectedRoute from './components/ProtectedRoute'
 import PublicRoute from './components/PublicRoute'
+import MemoryArchivePage from './pages/MemoryArchivePage'
 import { AuthProvider } from './context/AuthContext'
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
           <Route path="/diary/:date" element={<ProtectedRoute><DiaryPage /></ProtectedRoute>} />
           <Route path="/diary" element={<ProtectedRoute><DiaryRedirect /></ProtectedRoute>} />
           <Route path="/reflection" element={<ProtectedRoute><ReflectionPage /></ProtectedRoute>} />
+          <Route path="/archive" element={<ProtectedRoute><MemoryArchivePage /></ProtectedRoute>} />
 
           {/* Default route */}
           <Route path="/" element={<Navigate to="/diary" replace />} />
