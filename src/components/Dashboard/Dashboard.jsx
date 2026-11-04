@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine
+} from 'recharts';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
 import { Tooltip as ReactTooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
-import { format, subDays, startOfYear, endOfYear, subYears, parseISO } from 'date-fns';
-import { TrendingUp, Calendar as CalendarIcon, BarChart3, ChevronLeft, ChevronRight, BookOpen, Flame, Activity } from 'lucide-react';
+import { format, startOfYear, endOfYear, parseISO } from 'date-fns';
+import {
+  TrendingUp, TrendingDown, Minus, Calendar as CalendarIcon,
+  BarChart3, ChevronLeft, ChevronRight, BookOpen, Flame,
+  Activity, Target
+} from 'lucide-react';
 import Navigation from '../Navigation/Navigation';
 import './Dashboard.css';
 
@@ -54,41 +61,54 @@ const Dashboard = () => {
   const formatXAxis = (date) => {
     if (!date) return '';
     const parsedDate = typeof date === 'string' ? parseISO(date) : date;
-    
-    if (selectedDays === 7) {
-      // For 7 days, show day and date (Mon 1)
-      return format(parsedDate, 'EEE d');
-    } else if (selectedDays === 30) {
-      // For 30 days, show date (Dec 1)
-      return format(parsedDate, 'MMM d');
-    } else if (selectedDays === 90) {
-      // For 90 days, show month (Dec)
-      return format(parsedDate, 'MMM');
-    } else {
-      // For 1 year, show only month (Dec)
-      return format(parsedDate, 'MMM');
-    }
+    if (selectedDays === 7) return format(parsedDate, 'EEE d');
+    else if (selectedDays === 30) return format(parsedDate, 'MMM d');
+    else if (selectedDays === 90) return format(parsedDate, 'MMM');
+    else return format(parsedDate, 'MMM');
   };
 
-  // Calculate tick interval based on days
   const getTickInterval = () => {
-    if (selectedDays === 7) {
-      return 0; // Show all days
-    } else if (selectedDays === 30) {
-      return 4; // Show every 5th day
-    } else if (selectedDays === 90) {
-      return 14; // Show every ~15 days
-    } else {
-      return 29; // Show every ~30 days for 1 year (monthly)
-    }
+    if (selectedDays === 7) return 0;
+    else if (selectedDays === 30) return 4;
+    else if (selectedDays === 90) return 14;
+    else return 29;
   };
 
-  // Custom tooltip for line charts
+  // Smart Y-axis: hug the data with padding — no forced 0 baseline
+  const getYDomain = (data, key = 'value', paddingPercent = 0.18) => {
+    const values = data.map(d => d[key]).filter(v => v !== null && v !== undefined);
+    if (!values.length) return ['auto', 'auto'];
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const pad = range * paddingPercent;
+    const lo = Math.max(0, parseFloat((min - pad).toFixed(2)));
+    const hi = parseFloat((max + pad).toFixed(2));
+    return [lo, hi];
+  };
+
+  // Calculate trend: compares recent half vs older half
+  const getTrend = (data, key = 'value') => {
+    const values = data.map(d => d[key]).filter(v => v !== null && v !== undefined);
+    if (values.length < 4) return null;
+    const half = Math.floor(values.length / 2);
+    const recent = values.slice(-half);
+    const older = values.slice(0, half);
+    const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+    const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
+    const diff = recentAvg - olderAvg;
+    const pct = olderAvg !== 0 ? Math.abs((diff / olderAvg) * 100) : 0;
+    return {
+      direction: diff > 0.1 ? 'up' : diff < -0.1 ? 'down' : 'flat',
+      pct: pct.toFixed(1)
+    };
+  };
+
+  // Custom tooltip
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const value = payload[0].value;
-      if (value === null) return null;
-      
+      if (value === null || value === undefined) return null;
       return (
         <div className="custom-tooltip">
           <p className="tooltip-date">{format(new Date(label), 'MMM dd, yyyy')}</p>
@@ -99,221 +119,274 @@ const Dashboard = () => {
     return null;
   };
 
-  // Custom tooltip for heatmap
-  const HeatmapTooltip = ({ date, value, color }) => {
-    if (!date || value === null) return null;
-    
+  // Trend badge
+  const TrendBadge = ({ trend }) => {
+    if (!trend) return null;
+    if (trend.direction === 'up') {
+      return (
+        <span className="trend-badge trend-up">
+          <TrendingUp size={12} strokeWidth={2.5} />
+          +{trend.pct}%
+        </span>
+      );
+    }
+    if (trend.direction === 'down') {
+      return (
+        <span className="trend-badge trend-down">
+          <TrendingDown size={12} strokeWidth={2.5} />
+          -{trend.pct}%
+        </span>
+      );
+    }
     return (
-      <div className="custom-tooltip heatmap-tooltip">
-        <p className="tooltip-date">{format(new Date(date), 'MMM dd, yyyy')}</p>
-        <p className="tooltip-value">{value}</p>
-      </div>
+      <span className="trend-badge trend-flat">
+        <Minus size={12} strokeWidth={2.5} />
+        Stable
+      </span>
     );
   };
 
-  // Render range question chart (smooth line with area fill)
+  // ── RANGE CHART ──────────────────────────────────────────────────────────────
   const renderRangeChart = (question) => {
     const chartData = question.line_chart.data.map(item => ({
       date: item.date,
       value: item.value,
       color: item.color
     }));
-
     const stats = question.line_chart.statistics;
+    const yDomain = getYDomain(chartData);
+    const trend = getTrend(chartData);
+
+    // Distribution data for segmented bar
+    const distData = question.distribution
+      ? Object.entries(question.distribution)
+          .map(([label, d]) => ({ label, count: d.count, pct: d.percentage, color: d.color }))
+          .sort((a, b) => Number(a.label) - Number(b.label))
+      : [];
+    const totalDist = distData.reduce((s, d) => s + d.count, 0);
 
     return (
       <div key={question.question_id} className="chart-card">
         <div className="chart-header">
           <div className="chart-title-section">
-            <TrendingUp className="chart-icon" size={20} />
+            <div className="chart-icon-wrap chart-icon-wrap--range">
+              <TrendingUp size={17} />
+            </div>
             <div>
               <h3 className="chart-title">{question.question_text}</h3>
               <p className="chart-category">{question.category || 'General'}</p>
             </div>
           </div>
-          {stats && stats.count > 0 && (
-            <div className="chart-stats">
-              <div className="stat-item">
-                <span className="stat-label">Avg</span>
-                <span className="stat-value">{stats.average}</span>
+          <div className="chart-header-right">
+            {trend && <TrendBadge trend={trend} />}
+            {stats && stats.count > 0 && (
+              <div className="chart-stats">
+                {[
+                  { l: 'Avg', v: stats.average },
+                  { l: 'Min', v: stats.min },
+                  { l: 'Max', v: stats.max },
+                  { l: 'Entries', v: stats.count },
+                ].map(({ l, v }) => (
+                  <div key={l} className="stat-pill">
+                    <span className="stat-pill-label">{l}</span>
+                    <span className="stat-pill-value">{v}</span>
+                  </div>
+                ))}
               </div>
-              <div className="stat-item">
-                <span className="stat-label">Min</span>
-                <span className="stat-value">{stats.min}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Max</span>
-                <span className="stat-value">{stats.max}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Count</span>
-                <span className="stat-value">{stats.count}</span>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="chart-container">
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart 
-              data={chartData}
-              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-            >
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={chartData} margin={{ top: 16, right: 16, left: -10, bottom: 0 }}>
               <defs>
-                <linearGradient id={`gradient-${question.question_id}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#e81123" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#e81123" stopOpacity={0}/>
+                <linearGradient id={`grad-r-${question.question_id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#e81123" stopOpacity={0.22} />
+                  <stop offset="100%" stopColor="#e81123" stopOpacity={0.01} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-              <XAxis 
-                dataKey="date" 
+              <CartesianGrid strokeDasharray="2 4" stroke="#f1f3f5" vertical={false} />
+              <XAxis
+                dataKey="date"
                 tickFormatter={formatXAxis}
-                stroke="#95a5a6"
-                tick={{ fontSize: 12 }}
+                stroke="transparent"
+                tick={{ fontSize: 11, fill: '#9ca3af', fontFamily: 'Poppins, sans-serif' }}
                 tickLine={false}
                 axisLine={false}
                 interval={getTickInterval()}
                 minTickGap={20}
               />
-              <YAxis 
-                stroke="#95a5a6"
-                tick={{ fontSize: 12 }}
+              <YAxis
+                stroke="transparent"
+                tick={{ fontSize: 11, fill: '#9ca3af', fontFamily: 'Poppins, sans-serif' }}
                 tickLine={false}
                 axisLine={false}
+                domain={yDomain}
+                width={32}
               />
-              <Tooltip 
-                content={<CustomTooltip />} 
-                cursor={{ stroke: '#e81123', strokeWidth: 1, strokeDasharray: '3 3' }}
+              {stats && stats.average != null && (
+                <ReferenceLine
+                  y={stats.average}
+                  stroke="#e81123"
+                  strokeDasharray="5 3"
+                  strokeOpacity={0.35}
+                  label={{ value: `avg ${stats.average}`, fill: '#e8112399', fontSize: 10, position: 'insideTopRight' }}
+                />
+              )}
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ stroke: '#e8112330', strokeWidth: 1 }}
                 animationDuration={0}
                 isAnimationActive={false}
               />
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#e81123" 
-                strokeWidth={2}
-                fill={`url(#gradient-${question.question_id})`}
-                dot={{ 
-                  fill: '#e81123', 
-                  strokeWidth: 0, 
-                  r: 3 
-                }}
-                activeDot={{ 
-                  r: 5, 
-                  fill: '#e81123',
-                  stroke: '#fff',
-                  strokeWidth: 2,
-                  style: { transition: 'all 0.2s ease' }
-                }}
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="#e81123"
+                strokeWidth={2.5}
+                fill={`url(#grad-r-${question.question_id})`}
+                dot={false}
+                activeDot={{ r: 5, fill: '#e81123', stroke: '#fff', strokeWidth: 2 }}
                 connectNulls={false}
                 isAnimationActive={true}
-                animationDuration={800}
+                animationDuration={900}
+                animationEasing="ease-out"
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Segmented distribution bar */}
+        {totalDist > 0 && (
+          <div className="dist-bar-section">
+            <p className="dist-bar-label">Distribution</p>
+            <div className="dist-bar-track">
+              {distData
+                .filter(d => d.count > 0)
+                .map(d => (
+                  <div
+                    key={d.label}
+                    className="dist-bar-segment"
+                    style={{ width: `${d.pct}%`, backgroundColor: d.color || '#e81123' }}
+                    title={`${d.label}: ${d.count} (${d.pct}%)`}
+                  />
+                ))}
+            </div>
+            <div className="dist-bar-legend">
+              {distData
+                .filter(d => d.count > 0)
+                .map(d => (
+                  <span key={d.label} className="dist-legend-item">
+                    <span className="dist-legend-dot" style={{ backgroundColor: d.color || '#e81123' }} />
+                    <span className="dist-legend-text">{d.label}</span>
+                    <span className="dist-legend-pct">{d.pct}%</span>
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
-  // Render number question chart (smooth line with gradient - teal/cyan theme)
+  // ── NUMBER CHART ─────────────────────────────────────────────────────────────
   const renderNumberChart = (question) => {
     const chartData = question.line_chart.data.map(item => ({
       date: item.date,
       value: item.value
     }));
-
     const stats = question.line_chart.statistics;
+    const yDomain = getYDomain(chartData);
+    const trend = getTrend(chartData);
 
     return (
       <div key={question.question_id} className="chart-card number-chart">
         <div className="chart-header">
           <div className="chart-title-section">
-            <BarChart3 className="chart-icon number-icon" size={20} />
+            <div className="chart-icon-wrap chart-icon-wrap--number">
+              <BarChart3 size={17} />
+            </div>
             <div>
               <h3 className="chart-title">{question.question_text}</h3>
               <p className="chart-category">{question.category || 'General'}</p>
             </div>
           </div>
-          {stats && stats.count > 0 && (
-            <div className="chart-stats">
-              <div className="stat-item">
-                <span className="stat-label">Avg</span>
-                <span className="stat-value">{stats.average}</span>
+          <div className="chart-header-right">
+            {trend && <TrendBadge trend={trend} />}
+            {stats && stats.count > 0 && (
+              <div className="chart-stats">
+                {[
+                  { l: 'Avg', v: stats.average },
+                  { l: 'Min', v: stats.min },
+                  { l: 'Max', v: stats.max },
+                  { l: 'Entries', v: stats.count },
+                ].map(({ l, v }) => (
+                  <div key={l} className="stat-pill stat-pill--teal">
+                    <span className="stat-pill-label">{l}</span>
+                    <span className="stat-pill-value">{v}</span>
+                  </div>
+                ))}
               </div>
-              <div className="stat-item">
-                <span className="stat-label">Min</span>
-                <span className="stat-value">{stats.min}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Max</span>
-                <span className="stat-value">{stats.max}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Count</span>
-                <span className="stat-value">{stats.count}</span>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="chart-container">
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart 
-              data={chartData}
-              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-            >
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={chartData} margin={{ top: 16, right: 16, left: -10, bottom: 0 }}>
               <defs>
-                <linearGradient id={`gradient-number-${question.question_id}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0891b2" stopOpacity={0.25}/>
-                  <stop offset="95%" stopColor="#0891b2" stopOpacity={0}/>
+                <linearGradient id={`grad-n-${question.question_id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0891b2" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#0891b2" stopOpacity={0.01} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-              <XAxis 
-                dataKey="date" 
+              <CartesianGrid strokeDasharray="2 4" stroke="#f1f3f5" vertical={false} />
+              <XAxis
+                dataKey="date"
                 tickFormatter={formatXAxis}
-                stroke="#95a5a6"
-                tick={{ fontSize: 11 }}
+                stroke="transparent"
+                tick={{ fontSize: 11, fill: '#9ca3af', fontFamily: 'Poppins, sans-serif' }}
                 tickLine={false}
                 axisLine={false}
                 interval={getTickInterval()}
                 minTickGap={20}
               />
-              <YAxis 
-                stroke="#95a5a6"
-                tick={{ fontSize: 11 }}
+              <YAxis
+                stroke="transparent"
+                tick={{ fontSize: 11, fill: '#9ca3af', fontFamily: 'Poppins, sans-serif' }}
                 tickLine={false}
                 axisLine={false}
+                domain={yDomain}
+                width={32}
               />
-              <Tooltip 
-                content={<CustomTooltip />} 
-                cursor={{ stroke: '#0891b2', strokeWidth: 1, strokeDasharray: '3 3' }}
+              {stats && stats.average != null && (
+                <ReferenceLine
+                  y={stats.average}
+                  stroke="#0891b2"
+                  strokeDasharray="5 3"
+                  strokeOpacity={0.35}
+                  label={{ value: `avg ${stats.average}`, fill: '#0891b299', fontSize: 10, position: 'insideTopRight' }}
+                />
+              )}
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ stroke: '#0891b230', strokeWidth: 1 }}
                 animationDuration={0}
                 isAnimationActive={false}
               />
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#0891b2" 
-                strokeWidth={1.5}
-                fill={`url(#gradient-number-${question.question_id})`}
-                dot={{ 
-                  fill: '#0891b2', 
-                  strokeWidth: 0, 
-                  r: 2.5 
-                }}
-                activeDot={{ 
-                  r: 4, 
-                  fill: '#0891b2',
-                  stroke: '#fff',
-                  strokeWidth: 1.5,
-                  style: { transition: 'all 0.2s ease' }
-                }}
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke="#0891b2"
+                strokeWidth={2.5}
+                fill={`url(#grad-n-${question.question_id})`}
+                dot={false}
+                activeDot={{ r: 5, fill: '#0891b2', stroke: '#fff', strokeWidth: 2 }}
                 connectNulls={false}
                 isAnimationActive={true}
-                animationDuration={800}
+                animationDuration={900}
+                animationEasing="ease-out"
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -322,13 +395,11 @@ const Dashboard = () => {
     );
   };
 
-  // Render choice question chart (calendar heatmap)
+  // ── CHOICE CHART ─────────────────────────────────────────────────────────────
   const renderChoiceChart = (question) => {
-    // Use selected year for heatmap
     const yearStart = startOfYear(new Date(selectedYear, 0, 1));
     const yearEnd = endOfYear(new Date(selectedYear, 11, 31));
-    
-    // Create a map of responses by date
+
     const responseMap = {};
     question.line_chart.datasets.forEach(dataset => {
       dataset.data.forEach(item => {
@@ -342,7 +413,6 @@ const Dashboard = () => {
       });
     });
 
-    // Convert to heatmap format
     const heatmapData = Object.values(responseMap).map(item => ({
       date: item.date,
       count: 1,
@@ -350,48 +420,49 @@ const Dashboard = () => {
       color: item.color
     }));
 
+    // Horizontal bar distribution
+    const distItems = question.distribution
+      ? Object.entries(question.distribution)
+          .filter(([_, d]) => d.count > 0)
+          .sort(([_, a], [__, b]) => b.count - a.count)
+      : [];
+    const maxCount = distItems.length > 0 ? Math.max(...distItems.map(([_, d]) => d.count)) : 1;
+
     return (
       <div key={question.question_id} className="chart-card">
         <div className="chart-header">
           <div className="chart-title-section">
-            <CalendarIcon className="chart-icon" size={20} />
+            <div className="chart-icon-wrap chart-icon-wrap--choice">
+              <CalendarIcon size={17} />
+            </div>
             <div>
               <h3 className="chart-title">{question.question_text}</h3>
               <p className="chart-category">{question.category || 'General'}</p>
             </div>
           </div>
-        </div>
-
-        {/* Color Legend */}
-        {/* <div className="choice-legend">
-          {question.line_chart.datasets.map(dataset => (
-            <div key={dataset.label} className="legend-item">
-              <div 
-                className="legend-color" 
-                style={{ backgroundColor: dataset.color }}
-              />
-              <span className="legend-label">{dataset.label}</span>
+          {question.line_chart.total_responses > 0 && (
+            <div className="chart-header-right">
+              <div className="stat-pill stat-pill--violet">
+                <span className="stat-pill-label">Entries</span>
+                <span className="stat-pill-value">{question.line_chart.total_responses}</span>
+              </div>
             </div>
-          ))}
-        </div> */}
+          )}
+        </div>
 
         {/* Year Selector */}
         <div className="year-selector">
-          <button 
-            className="year-nav-button"
-            onClick={() => setSelectedYear(selectedYear - 1)}
-            aria-label="Previous year"
-          >
-            <ChevronLeft size={18} />
+          <button className="year-nav-button" onClick={() => setSelectedYear(selectedYear - 1)} aria-label="Previous year">
+            <ChevronLeft size={16} />
           </button>
           <span className="year-display">{selectedYear}</span>
-          <button 
+          <button
             className="year-nav-button"
             onClick={() => setSelectedYear(selectedYear + 1)}
             disabled={selectedYear >= new Date().getFullYear()}
             aria-label="Next year"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={16} />
           </button>
         </div>
 
@@ -402,16 +473,9 @@ const Dashboard = () => {
             endDate={yearEnd}
             values={heatmapData}
             gutterSize={3}
-            classForValue={(value) => {
-              if (!value || !value.count) {
-                return 'color-empty';
-              }
-              return 'color-filled';
-            }}
+            classForValue={(value) => (!value || !value.count ? 'color-empty' : 'color-filled')}
             tooltipDataAttrs={(value) => {
-              if (!value || !value.date) {
-                return {};
-              }
+              if (!value || !value.date) return {};
               return {
                 'data-tooltip-id': 'heatmap-tooltip',
                 'data-tooltip-content': `${format(new Date(value.date), 'MMM dd, yyyy')}: ${value.choice || 'No response'}`
@@ -420,26 +484,22 @@ const Dashboard = () => {
             transformDayElement={(element, value) => {
               if (value && value.color) {
                 return React.cloneElement(element, {
-                  style: {
-                    ...element.props.style,
-                    fill: value.color,
-                    opacity: 1
-                  }
+                  style: { ...element.props.style, fill: value.color, opacity: 1 }
                 });
               }
               return element;
             }}
           />
-          <ReactTooltip 
-            id="heatmap-tooltip" 
+          <ReactTooltip
+            id="heatmap-tooltip"
             className="custom-tooltip"
-            style={{ 
-              backgroundColor: 'white', 
+            style={{
+              backgroundColor: 'white',
               color: '#2c3e50',
               border: '1px solid #e0e0e0',
               borderRadius: '8px',
               padding: '0.5rem 0.75rem',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               opacity: 1
             }}
             render={({ content }) => {
@@ -455,26 +515,27 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Distribution */}
-        {question.distribution && (
+        {/* Horizontal bar distribution */}
+        {distItems.length > 0 && (
           <div className="distribution-section">
             <h4 className="distribution-title">Choice Distribution</h4>
-            <div className="distribution-grid">
-              {Object.entries(question.distribution)
-                .filter(([_, data]) => data.count > 0)
-                .sort(([_, a], [__, b]) => b.count - a.count)
-                .map(([choice, data]) => (
-                  <div key={choice} className="distribution-item">
-                    <div 
-                      className="distribution-color" 
-                      style={{ backgroundColor: data.color }}
+            <div className="dist-h-bars">
+              {distItems.map(([choice, data]) => (
+                <div key={choice} className="dist-h-row">
+                  <span className="dist-h-label" title={choice}>{choice}</span>
+                  <div className="dist-h-bar-wrap">
+                    <div
+                      className="dist-h-bar-fill"
+                      style={{
+                        width: `${(data.count / maxCount) * 100}%`,
+                        backgroundColor: data.color || '#6366f1'
+                      }}
                     />
-                    <span className="distribution-label">{choice}</span>
-                    <span className="distribution-count">{data.count}x</span>
-                    <span className="distribution-percentage">{data.percentage}%</span>
                   </div>
-                ))
-              }
+                  <span className="dist-h-pct">{data.percentage}%</span>
+                  <span className="dist-h-count">({data.count})</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -482,34 +543,39 @@ const Dashboard = () => {
     );
   };
 
-  // Group questions by category and type
+  // Group questions by category
   const groupQuestions = (questions) => {
     const grouped = {};
-    
     questions.forEach(question => {
       const category = question.category || 'General';
       const questionType = question.question_type;
-      
       if (!grouped[category]) {
         grouped[category] = { range: [], choice: [], text: [], number: [] };
       }
-      
-      // Only add if the question type is valid
-      if (questionType === 'range' || questionType === 'choice' || questionType === 'number') {
+      if (['range', 'choice', 'number'].includes(questionType)) {
         grouped[category][questionType].push(question);
       }
     });
-
     return grouped;
   };
 
+  // Completion rate
+  const completionRate = useMemo(() => {
+    if (!dashboardData) return null;
+    const { total_reflections, days_analyzed } = dashboardData.overview;
+    return Math.round((total_reflections / days_analyzed) * 100);
+  }, [dashboardData]);
+
+  // ── LOADING ─────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <>
         <Navigation />
         <div className="dashboard">
           <div className="dashboard-loading">
-            <div className="loading-spinner"></div>
+            <div className="loading-spinner-modern">
+              <div className="spinner-ring" />
+            </div>
             <p>Loading your insights...</p>
           </div>
         </div>
@@ -517,6 +583,7 @@ const Dashboard = () => {
     );
   }
 
+  // ── ERROR ────────────────────────────────────────────────────────────────────
   if (error) {
     return (
       <>
@@ -524,15 +591,14 @@ const Dashboard = () => {
         <div className="dashboard">
           <div className="dashboard-error">
             <p>{error}</p>
-            <button onClick={fetchDashboardData} className="retry-button">
-              Retry
-            </button>
+            <button onClick={fetchDashboardData} className="retry-button">Retry</button>
           </div>
         </div>
       </>
     );
   }
 
+  // ── EMPTY ────────────────────────────────────────────────────────────────────
   if (!dashboardData || !dashboardData.questions || dashboardData.questions.length === 0) {
     return (
       <>
@@ -550,115 +616,124 @@ const Dashboard = () => {
 
   const groupedQuestions = groupQuestions(dashboardData.questions);
 
+  // ── RENDER ───────────────────────────────────────────────────────────────────
   return (
     <>
       <Navigation />
       <div className="dashboard">
         <div className="dashboard-container">
-        {/* Header */}
-        <div className="dashboard-header">
-          <div>
-            <h1>Reflection Insights</h1>
-            <p className="dashboard-subtitle">
-              Visualizing {dashboardData.overview.total_reflections} reflections 
-              from the last {dashboardData.overview.days_analyzed} days
-            </p>
-          </div>
-          
-          {/* Day selector */}
-          <div className="day-selector">
-            <button 
-              className={`day-button ${selectedDays === 7 ? 'active' : ''}`}
-              onClick={() => setSelectedDays(7)}
-            >
-              7 Days
-            </button>
-            <button 
-              className={`day-button ${selectedDays === 30 ? 'active' : ''}`}
-              onClick={() => setSelectedDays(30)}
-            >
-              30 Days
-            </button>
-            <button 
-              className={`day-button ${selectedDays === 90 ? 'active' : ''}`}
-              onClick={() => setSelectedDays(90)}
-            >
-              90 Days
-            </button>
-            <button 
-              className={`day-button ${selectedDays === 365 ? 'active' : ''}`}
-              onClick={() => setSelectedDays(365)}
-            >
-              1 Year
-            </button>
-          </div>
-        </div>
 
-        {/* Overview Stats */}
-        <div className="overview-stats">
-          <div className="stat-card">
-            <div className="stat-icon">
-              <BookOpen size={24} strokeWidth={2} />
+          {/* Header */}
+          <div className="dashboard-header">
+            <div>
+              <h1>Reflection Insights</h1>
+              <p className="dashboard-subtitle">
+                Visualizing <strong>{dashboardData.overview.total_reflections}</strong> reflections
+                from the last <strong>{dashboardData.overview.days_analyzed}</strong> days
+              </p>
             </div>
-            <div className="stat-info">
-              <p className="stat-label">Total Reflections</p>
-              <p className="stat-number">{dashboardData.overview.total_reflections}</p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">
-              <Flame size={24} strokeWidth={2} />
-            </div>
-            <div className="stat-info">
-              <p className="stat-label">Day Streak</p>
-              <p className="stat-number">{dashboardData.overview.current_streak}</p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">
-              <Activity size={24} strokeWidth={2} />
-            </div>
-            <div className="stat-info">
-              <p className="stat-label">Active Questions</p>
-              <p className="stat-number">{dashboardData.questions.length}</p>
+            <div className="day-selector">
+              {[7, 30, 90, 365].map(d => (
+                <button
+                  key={d}
+                  className={`day-button ${selectedDays === d ? 'active' : ''}`}
+                  onClick={() => setSelectedDays(d)}
+                >
+                  {d === 365 ? '1 Year' : `${d}d`}
+                </button>
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* Charts grouped by category */}
-        {Object.entries(groupedQuestions).map(([category, questions], categoryIndex, categoriesArray) => {
-          const categoryCharts = [
-            ...questions.range.map(question => ({ id: question.id, node: renderRangeChart(question) })),
-            ...questions.choice.map(question => ({ id: question.id, node: renderChoiceChart(question) })),
-            ...questions.number.map(question => ({ id: question.id, node: renderNumberChart(question) }))
-          ];
+          {/* Overview Stats */}
+          <div className="overview-stats">
+            <div className="stat-card stat-card--blue">
+              <div className="stat-icon stat-icon--blue">
+                <BookOpen size={21} strokeWidth={2} />
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Total Reflections</p>
+                <p className="stat-number">{dashboardData.overview.total_reflections}</p>
+              </div>
+              <BookOpen size={72} strokeWidth={0.8} className="stat-card-bg-icon" />
+            </div>
 
-          return (
-            <React.Fragment key={category}>
-              <div className="category-section">
-                <h2 className="category-title">{category}</h2>
-                
-                {categoryCharts.length > 0 && (
+            <div className="stat-card stat-card--orange">
+              <div className="stat-icon stat-icon--orange">
+                <Flame size={21} strokeWidth={2} />
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Day Streak</p>
+                <p className="stat-number">
+                  {dashboardData.overview.current_streak}
+                  <span className="stat-number-unit"> days</span>
+                </p>
+              </div>
+              <Flame size={72} strokeWidth={0.8} className="stat-card-bg-icon" />
+            </div>
+
+            <div className="stat-card stat-card--violet">
+              <div className="stat-icon stat-icon--violet">
+                <Activity size={21} strokeWidth={2} />
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Active Questions</p>
+                <p className="stat-number">{dashboardData.questions.length}</p>
+              </div>
+              <Activity size={72} strokeWidth={0.8} className="stat-card-bg-icon" />
+            </div>
+
+            <div className="stat-card stat-card--green">
+              <div className="stat-icon stat-icon--green">
+                <Target size={21} strokeWidth={2} />
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Completion Rate</p>
+                <p className="stat-number">
+                  {Math.min(completionRate, 100)}
+                  <span className="stat-number-unit">%</span>
+                </p>
+              </div>
+              <div
+                className="stat-completion-bar"
+                style={{ '--fill': `${Math.min(completionRate, 100)}%` }}
+              />
+              <Target size={72} strokeWidth={0.8} className="stat-card-bg-icon" />
+            </div>
+          </div>
+
+          {/* Charts grouped by category */}
+          {Object.entries(groupedQuestions).map(([category, questions], categoryIndex, arr) => {
+            const charts = [
+              ...questions.range.map(q => ({ id: q.question_id, node: renderRangeChart(q) })),
+              ...questions.choice.map(q => ({ id: q.question_id, node: renderChoiceChart(q) })),
+              ...questions.number.map(q => ({ id: q.question_id, node: renderNumberChart(q) })),
+            ];
+            if (charts.length === 0) return null;
+
+            return (
+              <React.Fragment key={category}>
+                <div className="category-section">
+                  <div className="category-title-row">
+                    <h2 className="category-title">{category}</h2>
+                    <span className="category-count">
+                      {charts.length} metric{charts.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
                   <div className="charts-grid">
-                    {categoryCharts.map((chart, index) => (
-                      <React.Fragment key={chart.id}>
-                        {chart.node}
-                        {index < categoryCharts.length - 1 && (
-                          <hr className="dashboard-chart-separator" />
-                        )}
-                      </React.Fragment>
+                    {charts.map(chart => (
+                      <React.Fragment key={chart.id}>{chart.node}</React.Fragment>
                     ))}
                   </div>
+                </div>
+                {categoryIndex < arr.length - 1 && (
+                  <div className="dashboard-category-divider" />
                 )}
-              </div>
-              {categoryIndex < categoriesArray.length - 1 && (
-                <hr className="dashboard-category-separator" />
-              )}
-            </React.Fragment>
-          );
-        })}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
-    </div>
     </>
   );
 };
