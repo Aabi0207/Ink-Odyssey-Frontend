@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import CalendarHeatmap from 'react-calendar-heatmap';
@@ -17,6 +17,34 @@ import Navigation from '../Navigation/Navigation';
 import './Dashboard.css';
 
 const API_BASE_URL = 'https://aabidon.pythonanywhere.com/api/self-reflection';
+
+const addGapSegments = (data, key = 'value') => {
+  const dataWithGaps = data.map(item => ({ ...item }));
+  const gapKeys = [];
+
+  for (let start = 0; start < data.length - 1; start += 1) {
+    const hasValue = data[start][key] !== null && data[start][key] !== undefined;
+    const nextHasValue = data[start + 1][key] !== null && data[start + 1][key] !== undefined;
+    if (!hasValue || nextHasValue) {
+      continue;
+    }
+
+    let end = start + 1;
+    while (end < data.length && (data[end][key] === null || data[end][key] === undefined)) {
+      end += 1;
+    }
+
+    if (end < data.length) {
+      const gapKey = `gap-${gapKeys.length}`;
+      gapKeys.push(gapKey);
+      dataWithGaps[start][gapKey] = data[start][key];
+      dataWithGaps[end][gapKey] = data[end][key];
+      start = end - 1;
+    }
+  }
+
+  return { data: dataWithGaps, gapKeys };
+};
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -107,7 +135,8 @@ const Dashboard = () => {
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
-      const value = payload[0].value;
+      const valueEntry = payload.find(item => item.dataKey === 'value') || payload[0];
+      const value = valueEntry.value;
       if (value === null || value === undefined) return null;
       return (
         <div className="custom-tooltip">
@@ -148,11 +177,12 @@ const Dashboard = () => {
 
   // ── RANGE CHART ──────────────────────────────────────────────────────────────
   const renderRangeChart = (question) => {
-    const chartData = question.line_chart.data.map(item => ({
+    const rawChartData = question.line_chart.data.map(item => ({
       date: item.date,
       value: item.value,
       color: item.color
     }));
+    const { data: chartData, gapKeys } = addGapSegments(rawChartData);
     const stats = question.line_chart.statistics;
     const yDomain = getYDomain(chartData);
     const trend = getTrend(chartData);
@@ -199,7 +229,7 @@ const Dashboard = () => {
 
         <div className="chart-container">
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={chartData} margin={{ top: 16, right: 16, left: -10, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id={`grad-r-${question.question_id}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#e81123" stopOpacity={0.22} />
@@ -223,7 +253,8 @@ const Dashboard = () => {
                 tickLine={false}
                 axisLine={false}
                 domain={yDomain}
-                width={32}
+                width={44}
+                tickMargin={4}
               />
               {stats && stats.average != null && (
                 <ReferenceLine
@@ -234,6 +265,21 @@ const Dashboard = () => {
                   label={{ value: `avg ${stats.average}`, fill: '#e8112399', fontSize: 10, position: 'insideTopRight' }}
                 />
               )}
+              {gapKeys.map(gapKey => (
+                <Line
+                  key={`${question.question_id}-${gapKey}`}
+                  type="monotone"
+                  dataKey={gapKey}
+                  stroke="#e81123"
+                  strokeWidth={2.5}
+                  strokeDasharray="1 5"
+                  strokeLinecap="round"
+                  dot={false}
+                  activeDot={false}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              ))}
               <Tooltip
                 content={<CustomTooltip />}
                 cursor={{ stroke: '#e8112330', strokeWidth: 1 }}
@@ -292,10 +338,11 @@ const Dashboard = () => {
 
   // ── NUMBER CHART ─────────────────────────────────────────────────────────────
   const renderNumberChart = (question) => {
-    const chartData = question.line_chart.data.map(item => ({
+    const rawChartData = question.line_chart.data.map(item => ({
       date: item.date,
       value: item.value
     }));
+    const { data: chartData, gapKeys } = addGapSegments(rawChartData);
     const stats = question.line_chart.statistics;
     const yDomain = getYDomain(chartData);
     const trend = getTrend(chartData);
@@ -334,7 +381,7 @@ const Dashboard = () => {
 
         <div className="chart-container">
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={chartData} margin={{ top: 16, right: 16, left: -10, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id={`grad-n-${question.question_id}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#0891b2" stopOpacity={0.2} />
@@ -358,7 +405,8 @@ const Dashboard = () => {
                 tickLine={false}
                 axisLine={false}
                 domain={yDomain}
-                width={32}
+                width={44}
+                tickMargin={4}
               />
               {stats && stats.average != null && (
                 <ReferenceLine
@@ -369,6 +417,21 @@ const Dashboard = () => {
                   label={{ value: `avg ${stats.average}`, fill: '#0891b299', fontSize: 10, position: 'insideTopRight' }}
                 />
               )}
+              {gapKeys.map(gapKey => (
+                <Line
+                  key={`${question.question_id}-${gapKey}`}
+                  type="monotone"
+                  dataKey={gapKey}
+                  stroke="#0891b2"
+                  strokeWidth={2.5}
+                  strokeDasharray="1 5"
+                  strokeLinecap="round"
+                  dot={false}
+                  activeDot={false}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              ))}
               <Tooltip
                 content={<CustomTooltip />}
                 cursor={{ stroke: '#0891b230', strokeWidth: 1 }}
